@@ -1,0 +1,46 @@
+{% extends "signer/base.html" %}
+{% load static %}
+
+{% block content %}
+<section class="upload-section card">
+    <div class="card-body">
+        <h2 class="text-center mb-4">Assinar Documento PDF</h2>
+        
+        <form method="post" enctype="multipart/form-data" id="signForm">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label class="form-label">Documento PDF:</label>
+                {{ form.document }}
+                <small class="text-muted">Apenas arquivos PDF</small>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Texto da Assinatura (opcional):</label>
+                {{ form.signature_text }}
+                <small class="text-muted">Deixe em branco se usar imagem</small>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Imagem da Assinatura (opcional):</label>
+                {{ form.signature_image }}
+                <small class="text-muted">Deixe em branco se usar texto</small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100">Assinar Documento</button>
+            
+            {% if error %}
+                <div class="alert alert-danger mt-3">{{ error }}</div>
+            {% endif %}
+        </form>
+
+        <div class="text-center mt-3">
+            <a href="{% url 'home' %}" class="btn btn-secondary">Assinar outro arquivo</a>
+        </div>
+        
+    </div>
+</section>
+
+
+
+{% endblock %}

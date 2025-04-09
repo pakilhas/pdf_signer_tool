@@ -1,0 +1,73 @@
+/* Estilos gerais */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f9fa;
+}
+
+.header {
+    padding: 40px 20px; /* Reduz o espaçamento interno */
+    background-color: #f8f9fa; /* ou a cor que estiver usando */
+    display: center;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 60px; /* Diminui a altura */
+
+
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.logo img {
+    height: 150px;
+}
+
+.upload-section {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+}
+
+.tool-grid {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.tool-card {
+    transition: transform 0.3s ease;
+    align-items: center;
+}
+
+.tool-card:hover {
+    transform: translateY(-5px);
+}
+
+.footer {
+    text-align: center;
+    padding: 2rem 0;
+    margin-top: 3rem;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Ajustes para formulário */
+.form-control {
+    margin-bottom: 1rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .tool-grid {
+        flex-direction: column;
+    }
+}
