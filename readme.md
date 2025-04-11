@@ -8,7 +8,7 @@
 
 Aplicação web desenvolvida em Python/Django para adicionar assinaturas digitais em documentos PDF de forma automatizada.
 
-🔗 **Acesso Online:** [http://3.12.148.70/](http://3.12.148.70/)
+🔗 **Acesso Online:** [http://18.119.112.57/](http://3.12.148.70/)
 
 ## ✨ Funcionalidades
 
@@ -57,4 +57,4 @@ Configuração do Servidor:
     PostgreSQL para banco de dados
 
 Acesso Online:
-🔗 http://3.12.148.70/
+🔗 http://18.119.112.57/
