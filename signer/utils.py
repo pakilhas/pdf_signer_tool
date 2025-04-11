@@ -5,118 +5,137 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.colors import black
-from PIL import Image
+from PIL import Image, ImageEnhance
 from django.conf import settings
 
-def sign_pdf(pdf_file, signature_text=None, signature_image=None):
-    """Adiciona assinatura textual e/ou imagem a um PDF de forma segura.
-    
-    Args:
-        pdf_file: Arquivo PDF original
-        signature_text: Texto da assinatura (opcional)
-        signature_image: Imagem da assinatura (opcional)
-    
-    Returns:
-        Caminho absoluto do arquivo assinado
-    
-    Raises:
-        Exception: Com mensagem detalhada em caso de erro
-    """
-    output_path = None
+def process_document(document_instance):
+    """Processa o documento com marca d'água exatamente no local da assinatura"""
     try:
-        # Configurações ajustáveis
+        # Configurações
         config = {
-            'text': {
-                'font': 'Helvetica-Bold',
-                'size': 12,
-                'color': black,
-                'margin_right': 180, #aumentar para mover para esquerda
-                'margin_bottom': 50
+            'watermark': {
+                'opacity': document_instance.watermark_opacity,
+                'size_ratio': 1.2  # Tamanho relativo à assinatura
             },
-            'image': {
-                'max_width': 150,
-                'max_height': 50,
-                'margin_right': 100, #aumentar para mover para esquerda
-                'margin_bottom': 30
+            'signature': {
+                'text_font': 'Helvetica-Bold',
+                'text_size': 12,
+                'text_color': black,
+                'text_margin_right': 180,
+                'text_margin_bottom': 50,
+                'image_max_width': 150,
+                'image_max_height': 50,
+                'image_margin_right': 100,
+                'image_margin_bottom': 30
             },
-            'output_dir': os.path.join(settings.MEDIA_ROOT, 'signed_pdfs')
+            'output_dir': os.path.join(settings.MEDIA_ROOT, 'signed_documents')
         }
 
-        # Garante que o diretório de saída existe
         os.makedirs(config['output_dir'], exist_ok=True)
 
-        # Processamento do PDF
-        with BytesIO() as output_buffer:
+        # Caminhos dos arquivos
+        input_path = document_instance.original_file.path
+        watermark_path = document_instance.watermark_image.path
+        signature_image_path = document_instance.signature_image.path if document_instance.signature_image else None
+        output_filename = f'signed_{os.path.basename(input_path)}'
+        output_path = os.path.join(config['output_dir'], output_filename)
+
+        with open(input_path, 'rb') as pdf_file:
             pdf_reader = PdfReader(pdf_file)
             pdf_writer = PdfWriter()
 
             for page in pdf_reader.pages:
-                packet = BytesIO()
-                can = canvas.Canvas(packet, pagesize=letter)
                 page_width = float(page.mediabox.upper_right[0])
                 page_height = float(page.mediabox.upper_right[1])
+                
+                # 1. Determina posição e tamanho da assinatura
+                if signature_image_path and os.path.exists(signature_image_path):
+                    with Image.open(signature_image_path) as img:
+                        img_ratio = img.width / img.height
+                        if img_ratio > 1:
+                            width = min(config['signature']['image_max_width'], img.width)
+                            height = width / img_ratio
+                        else:
+                            height = min(config['signature']['image_max_height'], img.height)
+                            width = height * img_ratio
+                        
+                        pos_x = page_width - width - config['signature']['image_margin_right']
+                        pos_y = config['signature']['image_margin_bottom']
+                else:
+                    # Se não houver imagem, usa posição do texto
+                    width = 100  # Largura estimada para texto
+                    height = 40   # Altura estimada para texto
+                    pos_x = page_width - config['signature']['text_margin_right']
+                    pos_y = config['signature']['text_margin_bottom']
 
-                # Assinatura textual
-                if signature_text:
-                    can.setFont(
-                        config['text']['font'],
-                        config['text']['size']
-                    )
-                    can.setFillColor(config['text']['color'])
-                    text_x = page_width - config['text']['margin_right']
-                    text_y = config['text']['margin_bottom']
-                    can.drawString(text_x, text_y, signature_text)
-
-                # Assinatura por imagem
-                if signature_image:
-                    with Image.open(signature_image) as img:
+                # 2. Cria camada única com marca d'água e assinatura
+                packet = BytesIO()
+                can = canvas.Canvas(packet, pagesize=letter)
+                
+                # Adiciona MARCA D'ÁGUA (primeiro - fundo)
+                if watermark_path:
+                    with Image.open(watermark_path) as img:
+                        # Aplica transparência
+                        if img.mode != 'RGBA':
+                            img = img.convert('RGBA')
+                        
+                        alpha = img.split()[3]
+                        alpha = ImageEnhance.Brightness(alpha).enhance(config['watermark']['opacity'])
+                        img.putalpha(alpha)
+                        
+                        # Calcula tamanho proporcional à assinatura
+                        wm_width = width * config['watermark']['size_ratio']
+                        wm_height = height * config['watermark']['size_ratio']
+                        
+                        # Centraliza a marca d'água com a assinatura
+                        wm_x = pos_x - (wm_width - width)/2
+                        wm_y = pos_y - (wm_height - height)/2
+                        
+                        can.drawImage(
+                            ImageReader(img),
+                            wm_x,
+                            wm_y,
+                            width=wm_width,
+                            height=wm_height,
+                            mask='auto'
+                        )
+                
+                # Adiciona ASSINATURA (por cima da marca d'água)
+                if document_instance.signature_text:
+                    can.setFont(config['signature']['text_font'], config['signature']['text_size'])
+                    can.setFillColor(config['signature']['text_color'])
+                    can.drawString(pos_x, pos_y, document_instance.signature_text)
+                
+                if signature_image_path and os.path.exists(signature_image_path):
+                    with Image.open(signature_image_path) as img:
                         if img.mode != 'RGB':
                             img = img.convert('RGB')
                         
-                        # Calcula dimensões mantendo proporção
-                        img_ratio = img.width / img.height
-                        if img_ratio > 1:
-                            width = min(config['image']['max_width'], img.width)
-                            height = width / img_ratio
-                        else:
-                            height = min(config['image']['max_height'], img.height)
-                            width = height * img_ratio
-
-                        img_x = page_width - width - config['image']['margin_right']
-                        img_y = config['image']['margin_bottom']
-
                         can.drawImage(
                             ImageReader(img),
-                            img_x,
-                            img_y,
+                            pos_x,
+                            pos_y,
                             width=width,
                             height=height,
                             mask='auto'
                         )
-
+                
                 can.save()
                 packet.seek(0)
                 overlay = PdfReader(packet)
                 page.merge_page(overlay.pages[0])
                 pdf_writer.add_page(page)
 
-            # Gera nome único para o arquivo
-            output_path = os.path.join(
-                config['output_dir'],
-                f'signed_{os.urandom(4).hex()}.pdf'
-            )
+            with open(output_path, 'wb') as output_file:
+                pdf_writer.write(output_file)
 
-            # Escreve o conteúdo diretamente no arquivo final
-            with open(output_path, 'wb') as f:
-                pdf_writer.write(f)
+        document_instance.signed_file.name = os.path.join('signed_documents', output_filename)
+        document_instance.status = 'completed'
+        document_instance.save()
 
-        return os.path.abspath(output_path)
+        return output_path
 
     except Exception as e:
-        # Limpeza em caso de erro
-        if output_path and os.path.exists(output_path):
-            try:
-                os.remove(output_path)
-            except:
-                pass
-        raise Exception(f"Erro ao assinar PDF: {str(e)}")
+        document_instance.status = 'failed'
+        document_instance.save()
+        raise Exception(f"Erro ao processar documento: {str(e)}")

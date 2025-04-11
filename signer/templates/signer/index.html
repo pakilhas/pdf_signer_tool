@@ -2,45 +2,120 @@
 {% load static %}
 
 {% block content %}
-<section class="upload-section card">
-    <div class="card-body">
-        <h2 class="text-center mb-4">Assinar Documento PDF</h2>
-        
-        <form method="post" enctype="multipart/form-data" id="signForm">
-            {% csrf_token %}
-            
-            <div class="mb-3">
-                <label class="form-label">Documento PDF:</label>
-                {{ form.document }}
-                <small class="text-muted">Apenas arquivos PDF</small>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h2 class="h5 mb-0 text-center"><i class="bi bi-file-earmark-pdf"></i> Assinar Documento PDF</h2>
             </div>
             
-            <div class="mb-3">
-                <label class="form-label">Texto da Assinatura (opcional):</label>
-                {{ form.signature_text }}
-                <small class="text-muted">Deixe em branco se usar imagem</small>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" id="signForm" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Documento PDF -->
+                    <div class="mb-4">
+                        <label for="{{ form.document.id_for_label }}" class="form-label fw-bold">
+                            <i class="bi bi-file-earmark-arrow-up"></i> Documento PDF
+                        </label>
+                        {{ form.document }}
+                        <div class="invalid-feedback">Por favor, selecione um arquivo PDF.</div>
+                        <small class="text-muted">Tamanho máximo: 10MB. Formatos aceitos: .pdf</small>
+                    </div>
+                    
+                    <!-- Marca D'Água -->
+                    <div class="mb-4 border-top pt-3">
+                        <h3 class="h6 fw-bold"><i class="bi bi-droplet"></i> Configurações da Marca D'Água</h3>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.watermark_image.id_for_label }}" class="form-label">
+                                Imagem da Marca D'Água
+                            </label>
+                            {{ form.watermark_image }}
+                            <div class="invalid-feedback">Por favor, selecione uma imagem para a marca d'água.</div>
+                            <small class="text-muted">Formatos aceitos: .png, .jpg, .jpeg</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.watermark_opacity.id_for_label }}" class="form-label">
+                                Transparência: <span id="opacityValue">{{ form.watermark_opacity.value }}</span>
+                            </label>
+                            {{ form.watermark_opacity }}
+                            <small class="text-muted">Ajuste a transparência da marca d'água (0.1 = quase transparente, 0.9 = mais visível)</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Assinatura -->
+                    <div class="mb-4 border-top pt-3">
+                        <h3 class="h6 fw-bold"><i class="bi bi-pen"></i> Configurações de Assinatura</h3>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.signature_text.id_for_label }}" class="form-label">
+                                Texto da Assinatura
+                            </label>
+                            {{ form.signature_text }}
+                            <div class="invalid-feedback">Por favor, insira o texto da assinatura.</div>
+                            <small class="text-muted">Ex: Assinado digitalmente por [Nome] em [Data]</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.signature_image.id_for_label }}" class="form-label">
+                                Imagem da Assinatura (opcional)
+                            </label>
+                            {{ form.signature_image }}
+                            <small class="text-muted">Deixe em branco se usar apenas texto</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-file-earmark-check"></i> Assinar Documento
+                        </button>
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-counterclockwise"></i> Limpar Formulário
+                        </a>
+                    </div>
+                    
+                    {% if error %}
+                    <div class="alert alert-danger mt-4">
+                        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                    </div>
+                    {% endif %}
+                </form>
             </div>
-            
-            <div class="mb-3">
-                <label class="form-label">Imagem da Assinatura (opcional):</label>
-                {{ form.signature_image }}
-                <small class="text-muted">Deixe em branco se usar texto</small>
-            </div>
-            
-            <button type="submit" class="btn btn-primary w-100">Assinar Documento</button>
-            
-            {% if error %}
-                <div class="alert alert-danger mt-3">{{ error }}</div>
-            {% endif %}
-        </form>
-
-        <div class="text-center mt-3">
-            <a href="{% url 'home' %}" class="btn btn-secondary">Assinar outro arquivo</a>
         </div>
         
+        <div class="mt-4 text-center">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> <strong>Como funciona:</strong> O sistema adicionará sua marca d'água como fundo e a assinatura sobre o documento.
+            </div>
+        </div>
     </div>
-</section>
+</div>
+{% endblock %}
 
-
-
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Atualiza valor da transparência em tempo real
+    const opacitySlider = document.getElementById('{{ form.watermark_opacity.id_for_label }}');
+    const opacityValue = document.getElementById('opacityValue');
+    
+    if (opacitySlider) {
+        opacitySlider.addEventListener('input', function() {
+            opacityValue.textContent = this.value;
+        });
+    }
+    
+    // Validação do formulário
+    const form = document.getElementById('signForm');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    }, false);
+});
+</script>
 {% endblock %}

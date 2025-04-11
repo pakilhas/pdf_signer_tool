@@ -1,10 +1,12 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import FileResponse, HttpResponse
 from .forms import DocumentSignForm
-from .utils import sign_pdf
+from .models import SignedDocument
+from .utils import process_document
 import os
 from django.conf import settings
 import traceback
+from django.urls import reverse
 
 def home(request):
     try:
@@ -16,29 +18,34 @@ def home(request):
                     if not any([form.cleaned_data.get('signature_text'), 'signature_image' in request.FILES]):
                         return render(request, 'signer/index.html', {
                             'form': form,
-                            'error': "Por favor, forneça uma assinatura"
+                            'error': "Por favor, forneça uma assinatura (texto ou imagem)"
                         })
                     
-                    # Processamento do documento
-                    signed_path = sign_pdf(
-                        pdf_file=request.FILES['document'],
-                        signature_text=form.cleaned_data.get('signature_text'),
-                        signature_image=request.FILES.get('signature_image')
+                    # Cria instância do documento
+                    document = SignedDocument(
+                        original_file=request.FILES['document'],
+                        watermark_image=request.FILES['watermark_image'],
+                        watermark_opacity=form.cleaned_data.get('watermark_opacity', 0.3),
+                        watermark_position='center',
+                        signature_text=form.cleaned_data['signature_text'],
+                        ip_address=get_client_ip(request)
                     )
                     
-                    # Resposta com o arquivo
+                    # Salva imagem de assinatura se fornecida
+                    if 'signature_image' in request.FILES:
+                        document.signature_image = request.FILES['signature_image']
+                    
+                    document.save()
+                    
+                    # Processa o documento
+                    signed_path = process_document(document)
+                    
+                    # Força o download do arquivo
                     response = FileResponse(
                         open(signed_path, 'rb'),
                         content_type='application/pdf'
                     )
-                    response['Content-Disposition'] = 'attachment; filename="documento_assinado.pdf"'
-                    
-                    # Limpeza após download
-                    def cleanup():
-                        if os.path.exists(signed_path):
-                            os.remove(signed_path)
-                    
-                    response._resource_closers.append(cleanup)
+                    response['Content-Disposition'] = f'attachment; filename="documento_assinado_{document.id}.pdf"'
                     return response
                 
                 except Exception as e:
@@ -55,3 +62,29 @@ def home(request):
     except Exception as e:
         traceback.print_exc()
         return HttpResponse(f"Erro interno: {str(e)}", status=500)
+
+def download_document(request, doc_id):
+    """Função alternativa para download posterior"""
+    try:
+        document = SignedDocument.objects.get(id=doc_id)
+        
+        if not document.signed_file:
+            return HttpResponse("Documento não encontrado", status=404)
+        
+        response = FileResponse(
+            open(document.signed_file.path, 'rb'),
+            content_type='application/pdf'
+        )
+        response['Content-Disposition'] = f'attachment; filename="documento_assinado_{document.id}.pdf"'
+        return response
+    
+    except SignedDocument.DoesNotExist:
+        return HttpResponse("Documento não encontrado", status=404)
+    except Exception as e:
+        traceback.print_exc()
+        return HttpResponse(f"Erro ao baixar documento: {str(e)}", status=500)
+
+def get_client_ip(request):
+    """Obtém o IP do cliente"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    return x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
