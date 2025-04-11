@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = 'django-insecure-+oio^d6u$i=8!q-whei@=4ezd-sipfb*r1f(*96r@$5g@=b1z8'
 DEBUG = True
-ALLOWED_HOSTS = ['3.12.148.70', 'localhost', '*']  # 3.12.148.70
+ALLOWED_HOSTS = ['18.119.112.57', 'localhost', '*']  # 3.12.148.70
 STATIC_ROOT = '/var/www/pdf_signer/static/'
 
 # Application definition
