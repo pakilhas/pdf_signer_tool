@@ -1,5 +1,7 @@
 # PDF Signer Tool - Assinatura Digital de PDFs
 
+![image](https://github.com/user-attachments/assets/6c6df075-7e54-439d-ada1-6de190985a9e)
+
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![Django](https://img.shields.io/badge/Django-5.1-green)
 ![AWS](https://img.shields.io/badge/Hosted%20on-AWS%20EC2-orange)
@@ -8,7 +10,8 @@
 
 Aplicação web desenvolvida em Python/Django para adicionar assinaturas digitais em documentos PDF de forma automatizada.
 
-🔗 **Acesso Online:** [http://18.119.112.57/](http://3.12.148.70/)
+Acesso Online:
+🔗 http://52.14.188.193/
 
 ## ✨ Funcionalidades
 
@@ -57,4 +60,4 @@ Configuração do Servidor:
     PostgreSQL para banco de dados
 
 Acesso Online:
-🔗 http://18.119.112.57/
+🔗 http://52.14.188.193/
