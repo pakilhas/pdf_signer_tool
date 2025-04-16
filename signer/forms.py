@@ -1,20 +1,7 @@
 from django import forms
+from .models import SignedDocument
 
-class DocumentSignForm(forms.Form):
-    document = forms.FileField(
-        label='Selecione o PDF',
-        widget=forms.FileInput(attrs={'accept': '.pdf'}),
-        help_text="Selecione o documento PDF que deseja assinar"
-    )
-    watermark_image = forms.FileField(
-        label='Imagem para Marca D\'Água',
-        required=True,
-        widget=forms.FileInput(attrs={
-            'accept': '.png,.jpg,.jpeg',
-            'class': 'watermark-input'
-        }),
-        help_text="Imagem que será usada como fundo semi-transparente"
-    )
+class DocumentSignForm(forms.ModelForm):
     watermark_opacity = forms.FloatField(
         label='Transparência da Marca D\'Água',
         required=False,
@@ -28,17 +15,9 @@ class DocumentSignForm(forms.Form):
             'step': '0.1',
             'class': 'opacity-slider'
         }),
-        help_text="Ajuste a transparência da marca d'água (0.1 = quase transparente, 0.9 = mais visível)"
+        help_text="Ajuste a transparência (0.1 = transparente, 0.9 = mais visível)"
     )
-    signature_text = forms.CharField(
-        label='Texto da Assinatura',
-        required=True,
-        widget=forms.TextInput(attrs={
-            'placeholder': 'Ex: Assinado digitalmente por [Seu Nome] em [Data]',
-            'class': 'signature-text'
-        }),
-        help_text="Texto que aparecerá sobre o documento"
-    )
+    
     signature_image = forms.FileField(
         label='Imagem da Assinatura (opcional)',
         required=False,
@@ -46,9 +25,40 @@ class DocumentSignForm(forms.Form):
             'accept': '.png,.jpg,.jpeg',
             'class': 'signature-image'
         }),
-        help_text="Caso queira incluir uma imagem de assinatura escaneada"
+        help_text="Imagem de assinatura escaneada"
     )
+
+    class Meta:
+        model = SignedDocument
+        fields = [
+            'original_file',
+            'watermark_image',
+            'watermark_opacity',
+            'signature_text',
+            'signature_image',
+            'signature_position'  # Agora controla ambos
+        ]
+        labels = {
+            'signature_position': 'Posição no Rodapé'
+        }
+        
+        widgets = {
+            'original_file': forms.FileInput(attrs={'accept': '.pdf'}),
+            'watermark_image': forms.FileInput(attrs={'accept': '.png,.jpg,.jpeg'}),
+            'signature_text': forms.TextInput(attrs={
+                'placeholder': 'Digite o texto da assinatura...'
+            }),
+            'watermark_position': forms.Select(attrs={'class': 'form-control'}),
+            'signature_position': forms.Select(attrs={'class': 'form-control'})
+        }
+        labels = {
+            'original_file': 'Documento PDF',
+            'watermark_image': 'Imagem da Marca D\'Água',
+            'signature_text': 'Texto da Assinatura',
+            'watermark_position': 'Posição da Marca D\'Água',
+            'signature_position': 'Posição da Assinatura'
+        }
 
     def clean_watermark_opacity(self):
         opacity = self.cleaned_data.get('watermark_opacity', 0.3)
-        return max(0.1, min(0.9, float(opacity)))  # Garante que está entre 0.1 e 0.9
+        return max(0.1, min(0.9, float(opacity)))

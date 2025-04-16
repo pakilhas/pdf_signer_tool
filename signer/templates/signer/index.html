@@ -1,95 +1,103 @@
-{% extends "signer/base.html" %}
+{% extends 'signer/base.html' %}
 {% load static %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h2 class="h5 mb-0 text-center"><i class="bi bi-file-earmark-pdf"></i> Assinar Documento PDF</h2>
+<div class="card shadow-lg">
+    <div class="card-header bg-primary text-white">
+        <h2 class="mb-0">Assinar Documento PDF</h2>
+    </div>
+    
+    <div class="card-body">
+        {% if success %}
+            <div class="alert alert-success">
+                Documento assinado com sucesso!
+                <div class="mt-3">
+                    <a href="{% url 'home' %}" class="btn btn-primary">
+                        <i class="bi bi-file-earmark-plus"></i> Assinar Novo Documento
+                    </a>
+                    <a href="{% url 'download_document' doc_id %}" class="btn btn-secondary">
+                        <i class="bi bi-download"></i> Baixar Novamente
+                    </a>
+                </div>
             </div>
-            
-            <div class="card-body">
-                <form method="post" enctype="multipart/form-data" id="signForm" class="needs-validation" novalidate>
-                    {% csrf_token %}
-                    
-                    <!-- Documento PDF -->
-                    <div class="mb-4">
-                        <label for="{{ form.document.id_for_label }}" class="form-label fw-bold">
-                            <i class="bi bi-file-earmark-arrow-up"></i> Documento PDF
-                        </label>
-                        {{ form.document }}
-                        <div class="invalid-feedback">Por favor, selecione um arquivo PDF.</div>
-                        <small class="text-muted">Tamanho máximo: 10MB. Formatos aceitos: .pdf</small>
+        {% else %}
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Seção do Documento -->
+                <div class="mb-4">
+                    <h4 class="border-bottom pb-2">1. Documento PDF</h4>
+                    <div class="form-group">
+                        {{ form.original_file.label_tag }}
+                        {{ form.original_file }}
+                        <small class="form-text text-muted">{{ form.original_file.help_text }}</small>
                     </div>
-                    
-                    <!-- Marca D'Água -->
-                    <div class="mb-4 border-top pt-3">
-                        <h3 class="h6 fw-bold"><i class="bi bi-droplet"></i> Configurações da Marca D'Água</h3>
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.watermark_image.id_for_label }}" class="form-label">
-                                Imagem da Marca D'Água
-                            </label>
-                            {{ form.watermark_image }}
-                            <div class="invalid-feedback">Por favor, selecione uma imagem para a marca d'água.</div>
-                            <small class="text-muted">Formatos aceitos: .png, .jpg, .jpeg</small>
+                </div>
+
+                <!-- Seção Marca D'Água -->
+                <div class="mb-4">
+                    <h4 class="border-bottom pb-2">2. Marca D'Água</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.watermark_image.label_tag }}
+                                {{ form.watermark_image }}
+                            </div>
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.watermark_opacity.id_for_label }}" class="form-label">
-                                Transparência: <span id="opacityValue">{{ form.watermark_opacity.value }}</span>
-                            </label>
-                            {{ form.watermark_opacity }}
-                            <small class="text-muted">Ajuste a transparência da marca d'água (0.1 = quase transparente, 0.9 = mais visível)</small>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.watermark_opacity.label_tag }}
+                                {{ form.watermark_opacity }}
+                            </div>
                         </div>
                     </div>
-                    
-                    <!-- Assinatura -->
-                    <div class="mb-4 border-top pt-3">
-                        <h3 class="h6 fw-bold"><i class="bi bi-pen"></i> Configurações de Assinatura</h3>
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.signature_text.id_for_label }}" class="form-label">
-                                Texto da Assinatura
-                            </label>
-                            {{ form.signature_text }}
-                            <div class="invalid-feedback">Por favor, insira o texto da assinatura.</div>
-                            <small class="text-muted">Ex: Assinado digitalmente por [Nome] em [Data]</small>
+                </div>
+
+                <!-- Seção Assinatura -->
+                <div class="mb-4">
+                    <h4 class="border-bottom pb-2">3. Assinatura</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.signature_text.label_tag }}
+                                {{ form.signature_text }}
+                            </div>
+                            <div class="form-group">
+                                {{ form.signature_image.label_tag }}
+                                {{ form.signature_image }}
+                            </div>
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.signature_image.id_for_label }}" class="form-label">
-                                Imagem da Assinatura (opcional)
-                            </label>
-                            {{ form.signature_image }}
-                            <small class="text-muted">Deixe em branco se usar apenas texto</small>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.signature_position.label_tag }}
+                                {{ form.signature_position }}
+                                <small class="form-text text-muted">Selecione a posição no rodapé</small>
+                            </div>
+                            <div class="preview-signature bg-light p-3 mt-3 rounded">
+                                <h6>Pré-visualização:</h6>
+                                <div class="border p-2 text-{{ form.signature_position.value|default:'left' }}">
+                                    {% if form.signature_text.value %}
+                                        {{ form.signature_text.value }}
+                                    {% else %}
+                                        <em>Sua assinatura aparecerá aqui</em>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-file-earmark-check"></i> Assinar Documento
-                        </button>
-                        <a href="{% url 'home' %}" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-counterclockwise"></i> Limpar Formulário
-                        </a>
-                    </div>
-                    
-                    {% if error %}
-                    <div class="alert alert-danger mt-4">
-                        <i class="bi bi-exclamation-triangle"></i> {{ error }}
-                    </div>
-                    {% endif %}
-                </form>
-            </div>
-        </div>
-        
-        <div class="mt-4 text-center">
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> <strong>Como funciona:</strong> O sistema adicionará sua marca d'água como fundo e a assinatura sobre o documento.
-            </div>
-        </div>
+                </div>
+
+                <!-- Botões -->
+                <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                    <a href="{% url 'home' %}" class="btn btn-secondary">
+                        <i class="bi bi-file-earmark-plus"></i> Novo Documento
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-file-pdf"></i> Gerar Documento Assinado
+                    </button>
+                </div>
+            </form>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -97,25 +105,12 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Atualiza valor da transparência em tempo real
-    const opacitySlider = document.getElementById('{{ form.watermark_opacity.id_for_label }}');
-    const opacityValue = document.getElementById('opacityValue');
+    const positionSelect = document.querySelector('#id_signature_position');
+    const previewDiv = document.querySelector('.preview-signature div');
     
-    if (opacitySlider) {
-        opacitySlider.addEventListener('input', function() {
-            opacityValue.textContent = this.value;
-        });
-    }
-    
-    // Validação do formulário
-    const form = document.getElementById('signForm');
-    form.addEventListener('submit', function(event) {
-        if (!form.checkValidity()) {
-            event.preventDefault();
-            event.stopPropagation();
-        }
-        form.classList.add('was-validated');
-    }, false);
+    positionSelect.addEventListener('change', function() {
+        previewDiv.className = `border p-2 text-${this.value}`;
+    });
 });
 </script>
 {% endblock %}

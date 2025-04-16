@@ -8,61 +8,53 @@ from django.conf import settings
 import traceback
 from django.urls import reverse
 
-def home(request):
-    try:
-        if request.method == 'POST':
-            form = DocumentSignForm(request.POST, request.FILES)
-            if form.is_valid():
-                try:
-                    # Verificação de assinatura
-                    if not any([form.cleaned_data.get('signature_text'), 'signature_image' in request.FILES]):
-                        return render(request, 'signer/index.html', {
-                            'form': form,
-                            'error': "Por favor, forneça uma assinatura (texto ou imagem)"
-                        })
-                    
-                    # Cria instância do documento
-                    document = SignedDocument(
-                        original_file=request.FILES['document'],
-                        watermark_image=request.FILES['watermark_image'],
-                        watermark_opacity=form.cleaned_data.get('watermark_opacity', 0.3),
-                        watermark_position='center',
-                        signature_text=form.cleaned_data['signature_text'],
-                        ip_address=get_client_ip(request)
-                    )
-                    
-                    # Salva imagem de assinatura se fornecida
-                    if 'signature_image' in request.FILES:
-                        document.signature_image = request.FILES['signature_image']
-                    
-                    document.save()
-                    
-                    # Processa o documento
-                    signed_path = process_document(document)
-                    
-                    # Força o download do arquivo
-                    response = FileResponse(
-                        open(signed_path, 'rb'),
-                        content_type='application/pdf'
-                    )
-                    response['Content-Disposition'] = f'attachment; filename="documento_assinado_{document.id}.pdf"'
-                    return response
-                
-                except Exception as e:
-                    traceback.print_exc()
-                    return render(request, 'signer/index.html', {
-                        'form': form,
-                        'error': f"Erro no processamento: {str(e)}"
-                    })
-        
-        # GET request
-        form = DocumentSignForm()
-        return render(request, 'signer/index.html', {'form': form})
-    
-    except Exception as e:
-        traceback.print_exc()
-        return HttpResponse(f"Erro interno: {str(e)}", status=500)
+def get_client_ip(request):
+    """Obtém o IP do cliente"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    return x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
 
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    return x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
+
+def home(request):
+    success = False
+    doc_id = None
+    
+    if request.method == 'POST':
+        form = DocumentSignForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                document = form.save(commit=False)
+                document.ip_address = get_client_ip(request)
+                
+                if not document.signature_text and not document.signature_image:
+                    form.add_error(None, "Forneça uma assinatura (texto ou imagem)")
+                    return render(request, 'signer/index.html', {'form': form})
+                
+                document.save()
+                signed_path = process_document(document)
+                doc_id = document.id
+                success = True
+                
+                response = FileResponse(open(signed_path, 'rb'), content_type='application/pdf')
+                response['Content-Disposition'] = f'attachment; filename="documento_assinado_{document.id}.pdf"'
+                return response
+                
+            except Exception as e:
+                traceback.print_exc()
+                return render(request, 'signer/index.html', {
+                    'form': form,
+                    'error': f"Erro no processamento: {str(e)}"
+                })
+    
+    form = DocumentSignForm()
+    return render(request, 'signer/index.html', {
+        'form': form,
+        'success': success,
+        'doc_id': doc_id
+    })
+    
 def download_document(request, doc_id):
     """Função alternativa para download posterior"""
     try:
@@ -83,8 +75,4 @@ def download_document(request, doc_id):
     except Exception as e:
         traceback.print_exc()
         return HttpResponse(f"Erro ao baixar documento: {str(e)}", status=500)
-
-def get_client_ip(request):
-    """Obtém o IP do cliente"""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    return x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
+        
