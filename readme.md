@@ -1,5 +1,5 @@
 # PDF Signer Tool - Assinatura Digital de PDFs
-teste
+
 ![image](https://github.com/user-attachments/assets/6c6df075-7e54-439d-ada1-6de190985a9e)
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
