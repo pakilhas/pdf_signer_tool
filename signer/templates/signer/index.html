@@ -37,94 +37,47 @@
                             </div>
                         </div>
                         <small class="form-text text-muted">
-                            <i class="bi bi-info-circle"></i> Tamanho máximo: 10MB. Formatos aceitos: .pdf
+                            <i class="bi bi-info-circle"></i> Tamanho máximo: 20MB. Formatos aceitos: .pdf
                         </small>
-                    </div>
-                </div>
-
-                <!-- Seção Marca D'Água -->
-                <div class="mb-4">
-                    <h4 class="border-bottom pb-2"><i class="bi bi-image"></i> Marca D'Água</h4>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <div class="input-group">
-                                    <div class="custom-file">
-                                        {{ form.watermark_image }}
-                                        <label class="custom-file-label" for="id_watermark_image">
-                                            <i class="bi bi-folder2-open"></i> Procurar...
-                                        </label>
-                                    </div>
-                                </div>
-                                <small class="form-text text-muted">
-                                    <i class="bi bi-info-circle"></i> Formatos aceitos: .png, .jpg, .jpeg
-                                </small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Transparência: <span id="opacity-value">{{ form.watermark_opacity.value|default:"0.3" }}</span></label>
-                                {{ form.watermark_opacity }}
-                                <small class="form-text text-muted">
-                                    <i class="bi bi-sliders"></i> Ajuste a transparência (0.1 = quase transparente, 0.9 = mais visível)
-                                </small>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
                 <!-- Seção Assinatura -->
                 <div class="mb-4">
                     <h4 class="border-bottom pb-2"><i class="bi bi-pen"></i> Assinatura</h4>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {{ form.signature_text.label_tag }}
-                                {{ form.signature_text }}
-                                <small class="form-text text-muted">
-                                    <i class="bi bi-chat-square-text"></i> Ex: Assinado digitalmente por [Nome] em [Data]
-                                </small>
-                            </div>
-                            <div class="form-group">
-                                <div class="input-group">
-                                    <div class="custom-file">
-                                        {{ form.signature_image }}
-                                        <label class="custom-file-label" for="id_signature_image">
-                                            <i class="bi bi-folder2-open"></i> Procurar...
-                                        </label>
-                                    </div>
-                                </div>
-                                <small class="form-text text-muted">
-                                    <i class="bi bi-info-circle"></i> Deixe em branco se usar apenas texto
-                                </small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {{ form.signature_position.label_tag }}
-                                {{ form.signature_position }}
-                                <small class="form-text text-muted">
-                                    <i class="bi bi-arrows-move"></i> Selecione a posição no rodapé
-                                </small>
-                            </div>
-                            <div class="preview-signature bg-light p-3 mt-3 rounded">
-                                <h6><i class="bi bi-eye"></i> Pré-visualização:</h6>
-                                <div class="border p-2 text-{{ form.signature_position.value|default:'left' }}">
-                                    {% if form.signature_text.value %}
-                                        {{ form.signature_text.value }}
-                                    {% else %}
-                                        <em><i class="bi bi-pen"></i> Sua assinatura aparecerá aqui</em>
-                                    {% endif %}
-                                </div>
-                            </div>
+                    
+                    <div class="form-group mb-4">
+                        {{ form.signature_text.label_tag }}
+                        {{ form.signature_text }}
+                        <small class="form-text text-muted">
+                            <i class="bi bi-chat-square-text"></i> Exemplo: cbs-rap 0134MN-01-260525
+                        </small>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        {{ form.signature_position.label_tag }}
+                        {{ form.signature_position }}
+                        <small class="form-text text-muted">
+                            <i class="bi bi-arrows-move"></i> Selecione onde a assinatura será posicionada no rodapé
+                        </small>
+                    </div>
+
+                    <div class="preview-signature bg-light p-3 rounded">
+                        <h6><i class="bi bi-eye"></i> Pré-visualização da Posição</h6>
+                        <div class="border p-2 mt-2 text-{{ form.signature_position.value|default:'left' }}">
+                            {% if form.signature_text.value %}
+                                {{ form.signature_text.value }}
+                            {% else %}
+                                <em class="text-muted"><i class="bi bi-pen"></i> Sua assinatura aparecerá aqui</em>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
 
-                <!-- Botões -->
-                <div class="d-flex justify-content-between">
+                <!-- Botões de Ação -->
+                <div class="d-flex justify-content-between mt-4">
                     <button type="reset" class="btn btn-outline-danger">
-                        <i class="bi bi-eraser"></i> Limpar Formulário
+                        <i class="bi bi-eraser"></i> Limpar Campos
                     </button>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-file-earmark-check"></i> Assinar Documento
@@ -136,7 +89,7 @@
 
     <div class="card-footer bg-light">
         <small class="text-muted">
-            <i class="bi bi-info-circle"></i> O sistema adicionará sua marca d'água como fundo e a assinatura sobre o documento.
+            <i class="bi bi-info-circle"></i> A assinatura será aplicada como marca d'água visível na última página do documento.
         </small>
     </div>
 </div>
@@ -145,28 +98,25 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Atualiza a pré-visualização da posição
-    const positionSelect = document.querySelector('#id_signature_position');
+    // Atualização dinâmica da pré-visualização
+    const positionSelect = document.getElementById('id_signature_position');
+    const signatureInput = document.getElementById('id_signature_text');
     const previewDiv = document.querySelector('.preview-signature div');
     
+    // Atualizar posição
     positionSelect.addEventListener('change', function() {
-        previewDiv.className = `border p-2 text-${this.value}`;
+        previewDiv.className = `border p-2 mt-2 text-${this.value}`;
     });
 
-    // Atualiza o valor da transparência em tempo real
-    const opacitySlider = document.querySelector('#id_watermark_opacity');
-    const opacityValue = document.querySelector('#opacity-value');
-    
-    opacitySlider.addEventListener('input', function() {
-        opacityValue.textContent = this.value;
+    // Atualizar texto da assinatura
+    signatureInput.addEventListener('input', function() {
+        previewDiv.innerHTML = this.value || '<em class="text-muted"><i class="bi bi-pen"></i> Sua assinatura aparecerá aqui</em>';
     });
 
-    // Mostra o nome do arquivo selecionado
-    document.querySelectorAll('.custom-file-input').forEach(input => {
-        input.addEventListener('change', function() {
-            const fileName = this.files[0]?.name || 'Nenhum arquivo selecionado';
-            this.nextElementSibling.innerHTML = `<i class="bi bi-file-earmark"></i> ${fileName}`;
-        });
+    // Mostrar nome do arquivo selecionado
+    document.getElementById('id_original_file').addEventListener('change', function(e) {
+        const fileName = e.target.files[0] ? e.target.files[0].name : 'Nenhum arquivo selecionado';
+        this.nextElementSibling.innerHTML = `<i class="bi bi-file-earmark"></i> ${fileName}`;
     });
 });
 </script>
