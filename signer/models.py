@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
+
 class SignedDocument(models.Model):
     POSITION_CHOICES = [
         ('left', 'Esquerda'),
@@ -70,3 +71,15 @@ class SignedDocument(models.Model):
     @property
     def original_filename(self):
         return self.original_file.name.split('/')[-1]
+    
+  
+    # Novos campos para coordenadas
+    signature_x = models.FloatField(null=True, blank=True)
+    signature_y = models.FloatField(null=True, blank=True)
+    signature_page = models.PositiveIntegerField(
+        default=1,
+        verbose_name='Página da Assinatura'
+    )
+
+    def __str__(self):
+        return f"Documento #{self.id}"
