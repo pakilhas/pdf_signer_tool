@@ -7,7 +7,7 @@ from .models import SignedDocument
 class DocumentSignForm(forms.ModelForm):
     class Meta:
         model = SignedDocument
-        fields = ['original_file', 'signature_text']
+        fields = ['original_file', 'signature_text', 'signature_mode']
         widgets = {
             'original_file': forms.FileInput(attrs={
                 'accept': '.pdf',

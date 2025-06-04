@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.http import HttpResponse, FileResponse
 from .forms import DocumentSignForm
 from .models import SignedDocument
@@ -20,16 +20,27 @@ def home(request):
                 document = form.save(commit=False)
                 document.ip_address = get_client_ip(request)
                 
-                # Capturar coordenadas e página
-                signature_x = request.POST.get('signature_x')
-                signature_y = request.POST.get('signature_y')
-                signature_page = request.POST.get('signature_page', '1')
+                # Obter o modo de assinatura
+                signature_mode = form.cleaned_data.get('signature_mode', 'manual')
                 
-                if signature_x and signature_y:
-                    document.signature_x = float(signature_x)
-                    document.signature_y = float(signature_y)
+                # Processar coordenadas apenas no modo manual
+                if signature_mode == 'manual':
+                    signature_x = request.POST.get('signature_x')
+                    signature_y = request.POST.get('signature_y')
+                    signature_page = request.POST.get('signature_page', '1')
+                    
+                    if signature_x and signature_y:
+                        document.signature_x = float(signature_x)
+                        document.signature_y = float(signature_y)
+                    
+                    document.signature_page = int(signature_page)
+                else:
+                    # Modo automático: definir valores padrão
+                    document.signature_position = 'center'  # Posição padrão
+                    document.signature_page = 1  # Página padrão
+                    document.signature_x = None
+                    document.signature_y = None
                 
-                document.signature_page = int(signature_page)
                 document.save()
                 
                 signed_path = process_document(document)

@@ -81,5 +81,19 @@ class SignedDocument(models.Model):
         verbose_name='Página da Assinatura'
     )
 
+    signature_mode = models.CharField(
+        max_length=10,
+        choices=[('auto', 'Automático'), ('manual', 'Manual')],
+        default='manual'
+    )
+
     def __str__(self):
         return f"Documento #{self.id}"
+    
+    
+    
+    signature_mode = models.CharField(
+        max_length=10,
+        choices=[('auto', 'Automático'), ('manual', 'Manual')],
+        default='manual'
+    )

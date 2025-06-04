@@ -104,8 +104,31 @@
                     </div>
                 </div>
 
-                <!-- Área de Seleção -->
-                <div class="mb-4 border p-3">
+                <!-- Seção Modo de Assinatura -->
+                <div class="mb-4">
+                    <h4 class="border-bottom pb-2"><i class="bi bi-gear"></i> Modo de Assinatura</h4>
+                    <div class="form-group">
+                        <div class="d-flex">
+                            <div class="form-check mr-3">
+                                <input class="form-check-input" type="radio" name="signature_mode" id="modeManual" 
+                                       value="manual" checked>
+                                <label class="form-check-label" for="modeManual">
+                                    <i class="bi bi-mouse"></i> Manual (Selecionar Posição)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="signature_mode" id="modeAuto" 
+                                       value="auto">
+                                <label class="form-check-label" for="modeAuto">
+                                    <i class="bi bi-lightning"></i> Automático (Rodapé Centralizado)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Área de Seleção (Manual) -->
+                <div id="position-selection-area" class="mb-4 border p-3">
                     <h5><i class="bi bi-cursor"></i> Selecione a Posição da Assinatura</h5>
                     
                     <!-- Controles de página -->
@@ -343,6 +366,10 @@ document.getElementById('resetButton').addEventListener('click', function() {
     document.getElementById('signatureY').value = '';
     document.getElementById('signaturePage').value = '1';
     
+    // Resetar modo para manual
+    document.getElementById('modeManual').checked = true;
+    document.getElementById('position-selection-area').style.display = 'block';
+    
     // Resetar pré-visualização
     const previewDiv = document.querySelector('.preview-signature div');
     previewDiv.className = 'border p-2 text-left';
@@ -365,6 +392,22 @@ signatureText.addEventListener('input', function() {
     } else {
         previewDiv.innerHTML = '<em><i class="bi bi-pen"></i> Sua assinatura aparecerá aqui</em>';
     }
+});
+
+// Alternar entre modos de assinatura
+document.querySelectorAll('input[name="signature_mode"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const positionArea = document.getElementById('position-selection-area');
+        if (this.value === 'auto') {
+            positionArea.style.display = 'none';
+            // Limpar marcador no modo automático
+            marker.style.display = 'none';
+            document.getElementById('signatureX').value = '';
+            document.getElementById('signatureY').value = '';
+        } else {
+            positionArea.style.display = 'block';
+        }
+    });
 });
 </script>
 {% endblock %}

@@ -21,6 +21,7 @@ def process_document(document):
             'fixed_watermark.png'
         )
         OPACIDADE_FIXA = 0.3
+        OPACIDADE_TEXTO = 0.5  # 50% de transparência para o texto
         
         # Verificar se a imagem fixa existe
         if not os.path.exists(WATERMARK_IMAGE):
@@ -64,69 +65,91 @@ def process_document(document):
             page_width = float(media_box[2] - media_box[0])
             page_height = float(media_box[3] - media_box[1])
             
-            # Calcular posição base
-            if document.signature_x and document.signature_y:
-                # Usar coordenadas relativas (%)
-                base_x = (float(document.signature_x) / 100) * page_width
-                base_y = page_height - (float(document.signature_y) / 100) * page_height
-            else:
-                # Posição padrão
-                positions = {
-                    'left': 50,
-                    'center': page_width / 2,
-                    'right': page_width - 150
-                }
-                base_x = positions.get(document.signature_position, 50)
-                base_y = 50
-
-            # Calcular posições (imagem acima, texto abaixo)
-            image_x = base_x - (img_width / 2)
-            image_y = base_y
-            text_y = base_y - img_height - ESPACO_TEXTO_IMAGEM
-
-            # Criar camadas para esta página
-            watermark_packet = BytesIO()
-            watermark_canvas = canvas.Canvas(watermark_packet, pagesize=(page_width, page_height))
-            
-            signature_packet = BytesIO()
-            signature_canvas = canvas.Canvas(signature_packet, pagesize=(page_width, page_height))
-
-            # Desenhar imagem
-            watermark_canvas.setFillAlpha(OPACIDADE_FIXA)
-            watermark_canvas.drawImage(
-                watermark_img,
-                image_x,
-                image_y,
-                width=img_width,
-                height=img_height,
-                preserveAspectRatio=True,
-                mask='auto'
+            # Determinar se esta página deve receber a assinatura
+            should_sign_page = (
+                document.signature_mode == 'auto' or 
+                (document.signature_mode == 'manual' and (page_num + 1) == document.signature_page)
             )
-            watermark_canvas.setFillAlpha(1)
-            watermark_canvas.showPage()
-            watermark_canvas.save()
-
-            # Desenhar texto
-            if document.signature_text:
-                signature_canvas.setFont(FONT_NAME, FONT_SIZE)
-                text_width = signature_canvas.stringWidth(document.signature_text, FONT_NAME, FONT_SIZE)
-                text_x = base_x - (text_width / 2)
-                signature_canvas.drawString(text_x, text_y, document.signature_text)
-            signature_canvas.showPage()
-            signature_canvas.save()
-
-            # Mesclar camadas
-            watermark_packet.seek(0)
-            watermark_pdf = PyPDF2.PdfReader(watermark_packet)
             
-            signature_packet.seek(0)
-            signature_pdf = PyPDF2.PdfReader(signature_packet) if document.signature_text else None
+            if should_sign_page:
+                # Calcular posição base
+                if document.signature_mode == 'auto':
+                    # POSIÇÃO AUTOMÁTICA: CANTO DIREITO INFERIOR
+                    margin_right = 100
+                    margin_bottom = 50
+                    base_x = page_width - margin_right
+                    base_y = margin_bottom
+                elif document.signature_x and document.signature_y:
+                    # Modo manual com coordenadas
+                    base_x = (float(document.signature_x) / 100) * page_width
+                    base_y = page_height - (float(document.signature_y) / 100) * page_height
+                else:
+                    # Modo manual com posição pré-definida
+                    positions = {
+                        'left': 50,
+                        'center': page_width / 2,
+                        'right': page_width - 150
+                    }
+                    base_x = positions.get(document.signature_position, 50)
+                    base_y = 50
 
-            # Aplicar camadas à página original
-            page.merge_page(watermark_pdf.pages[0])
-            if signature_pdf:
-                page.merge_page(signature_pdf.pages[0])
+                # Calcular posições (imagem acima, texto abaixo)
+                image_x = base_x - (img_width / 2)
+                image_y = base_y
+                text_y = base_y - img_height - ESPACO_TEXTO_IMAGEM
+
+                # Criar camadas para esta página
+                watermark_packet = BytesIO()
+                watermark_canvas = canvas.Canvas(watermark_packet, pagesize=(page_width, page_height))
+                
+                signature_packet = BytesIO()
+                signature_canvas = canvas.Canvas(signature_packet, pagesize=(page_width, page_height))
+
+                # Desenhar imagem
+                watermark_canvas.setFillAlpha(OPACIDADE_FIXA)
+                watermark_canvas.drawImage(
+                    watermark_img,
+                    image_x,
+                    image_y,
+                    width=img_width,
+                    height=img_height,
+                    preserveAspectRatio=True,
+                    mask='auto'
+                )
+                watermark_canvas.setFillAlpha(1)
+                watermark_canvas.showPage()
+                watermark_canvas.save()
+
+                # Desenhar texto COM TRANSPARÊNCIA
+                if document.signature_text:
+                    signature_canvas.setFont(FONT_NAME, FONT_SIZE)
+                    
+                    # Aplicar transparência ao texto
+                    signature_canvas.setFillAlpha(OPACIDADE_TEXTO)
+                    
+                    text_width = signature_canvas.stringWidth(document.signature_text, FONT_NAME, FONT_SIZE)
+                    text_x = base_x - (text_width / 2)
+                    signature_canvas.drawString(text_x, text_y, document.signature_text)
+                    
+                    # Restaurar opacidade total
+                    signature_canvas.setFillAlpha(1)
+                
+                signature_canvas.showPage()
+                signature_canvas.save()
+
+                # Mesclar camadas
+                watermark_packet.seek(0)
+                watermark_pdf = PyPDF2.PdfReader(watermark_packet)
+                
+                signature_packet.seek(0)
+                signature_pdf = PyPDF2.PdfReader(signature_packet) if document.signature_text else None
+
+                # Aplicar camadas à página original
+                page.merge_page(watermark_pdf.pages[0])
+                if signature_pdf:
+                    page.merge_page(signature_pdf.pages[0])
             
+            # Adicionar página ao PDF final
             output_pdf.add_page(page)
 
         # Salvar arquivo final
