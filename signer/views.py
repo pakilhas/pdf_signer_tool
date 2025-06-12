@@ -4,6 +4,7 @@ from .forms import DocumentSignForm
 from .models import SignedDocument
 from .utils import process_document
 import traceback
+import os
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', '')
@@ -47,9 +48,14 @@ def home(request):
                 doc_id = document.id
                 success = True
                 
+                # Obter nome original do arquivo
+                original_filename = os.path.basename(document.original_file.name)
+                name, ext = os.path.splitext(original_filename)
+                signed_filename = f"{name}_APROVADO_CBS{ext}"
+                
                 # Retornar o PDF assinado para download
                 response = FileResponse(open(signed_path, 'rb'), content_type='application/pdf')
-                response['Content-Disposition'] = f'attachment; filename="documento_assinado_{document.id}.pdf"'
+                response['Content-Disposition'] = f'attachment; filename="{signed_filename}"'
                 return response
                 
             except Exception as e:
@@ -79,7 +85,7 @@ def download_document(request, doc_id):
             return FileResponse(
                 open(document.signed_file.path, 'rb'),
                 content_type='application/pdf',
-                filename=f"documento_assinado_{doc_id}.pdf"
+                filename=f"documento_assinado_.pdf"
             )
         return HttpResponse("Documento não encontrado", status=404)
     
